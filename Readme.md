@@ -1,0 +1,1 @@
+Simple Exercise for exams in school
