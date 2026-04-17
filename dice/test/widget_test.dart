@@ -1,9 +1,4 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,20 +6,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dice/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('roll button updates both dice', (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(random: _SequenceRandom(<int>[1, 4, 0, 3])));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('⚀'), findsOneWidget);
+    expect(find.text('⚅'), findsOneWidget);
+    expect(find.text('Lăn xúc xắc'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.text('Lăn xúc xắc'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('⚁'), findsOneWidget);
+    expect(find.text('⚄'), findsOneWidget);
+    expect(find.text('⚀'), findsNothing);
+    expect(find.text('⚅'), findsNothing);
   });
+}
+
+class _SequenceRandom implements Random {
+  _SequenceRandom(this.values);
+
+  final List<int> values;
+  int _index = 0;
+
+  @override
+  int nextInt(int max) {
+    final int value = values[_index % values.length] % max;
+    _index += 1;
+    return value;
+  }
+
+  @override
+  bool nextBool() => nextInt(2) == 0;
+
+  @override
+  double nextDouble() => nextInt(1000000) / 1000000;
 }
