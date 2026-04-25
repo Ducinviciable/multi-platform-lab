@@ -1,121 +1,305 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: WeatherScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class WeatherScreen extends StatefulWidget {
+  const WeatherScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _WeatherScreenState createState() => _WeatherScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _WeatherScreenState extends State<WeatherScreen> {
+  final TextEditingController cityController = TextEditingController();
+  final FocusNode _cityFocusNode = FocusNode();
 
-  void _incrementCounter() {
+  Timer? _debounce;
+  List<String> _citySuggestions = [];
+
+  String cityName = "";
+  String temp = "";
+  String desc = "";
+  String iconUrl = "";
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    cityController.dispose();
+    _cityFocusNode.dispose();
+    super.dispose();
+  }
+
+  String _removeVietnameseDiacritics(String input) {
+    const withDiacritics =
+        "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ"
+        "ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ";
+    const withoutDiacritics =
+        "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd"
+        "AAAAAAAAAAAAAAAAAEEEEEEEEEEEIIIIIOOOOOOOOOOOOOOOOOUUUUUUUUUUUYYYYYD";
+
+    final buffer = StringBuffer();
+    for (final char in input.split('')) {
+      final index = withDiacritics.indexOf(char);
+      buffer.write(index >= 0 ? withoutDiacritics[index] : char);
+    }
+    return buffer.toString();
+  }
+
+  void _onCityChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      _fetchCitySuggestions(value);
+    });
+  }
+
+  Future<void> _fetchCitySuggestions(String rawInput) async {
+    final query = rawInput.trim();
+
+    if (query.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _citySuggestions = [];
+      });
+      return;
+    }
+
+    const apiKey = "5e3eb113c28c4841bbe170805262504";
+    final searchQueries = <String>[query];
+    final normalizedQuery = _removeVietnameseDiacritics(query);
+    if (normalizedQuery != query) {
+      searchQueries.add(normalizedQuery);
+    }
+
+    final suggestionSet = <String>{};
+
+    for (final search in searchQueries) {
+      try {
+        final url = Uri.https('api.weatherapi.com', '/v1/search.json', {
+          'key': apiKey,
+          'q': search,
+        });
+
+        final response = await http.get(url);
+        if (response.statusCode != 200) {
+          continue;
+        }
+
+        final data = jsonDecode(response.body);
+        if (data is! List) {
+          continue;
+        }
+
+        for (final item in data.take(8)) {
+          final city = item['name'];
+          final country = item['country'];
+          if (city is String && country is String) {
+            suggestionSet.add('$city, $country');
+          }
+        }
+      } catch (_) {
+        // Ignore autocomplete errors to keep typing responsive.
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _citySuggestions = suggestionSet.take(10).toList();
+    });
+  }
+
+  Future<void> getWeather() async {
+    final city = cityController.text.trim();
+    const apiKey = "5e3eb113c28c4841bbe170805262504";
+
+    if (city.isEmpty) {
+      setState(() {
+        cityName = "Vui lòng nhập thành phố";
+        temp = "";
+        desc = "";
+        iconUrl = "";
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final url = Uri.https('api.weatherapi.com', '/v1/current.json', {
+        'key': apiKey,
+        'q': city,
+        'aqi': 'no',
+      });
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          cityName =
+              "${data['location']['name']}, ${data['location']['country']}";
+          temp = "${data['current']['temp_c']}°C";
+          desc = data['current']['condition']['text'];
+          iconUrl = "https:${data['current']['condition']['icon']}";
+        });
+      } else {
+        cityName = "Không tìm thấy";
+        temp = "";
+        desc = "";
+        iconUrl = "";
+      }
+    } catch (e) {
+      cityName = "Lỗi mạng";
+      temp = "";
+      desc = "";
+      iconUrl = "";
+    }
+
+    setState(() {
+      isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      appBar: AppBar(title: Text("Weather App")),
+      body: Padding(
+        padding: EdgeInsets.all(16),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            RawAutocomplete<String>(
+              textEditingController: cityController,
+              focusNode: _cityFocusNode,
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                final query = textEditingValue.text.trim().toLowerCase();
+                if (query.isEmpty) {
+                  return const Iterable<String>.empty();
+                }
+                return _citySuggestions.where(
+                  (option) => option.toLowerCase().contains(query),
+                );
+              },
+              onSelected: (String selection) {
+                cityController
+                  ..text = selection
+                  ..selection = TextSelection.collapsed(
+                    offset: selection.length,
+                  );
+              },
+              fieldViewBuilder:
+                  (
+                    BuildContext context,
+                    TextEditingController textEditingController,
+                    FocusNode focusNode,
+                    VoidCallback onFieldSubmitted,
+                  ) {
+                    return TextField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      onChanged: _onCityChanged,
+                      onSubmitted: (_) {
+                        onFieldSubmitted();
+                        getWeather();
+                      },
+                      decoration: InputDecoration(
+                        labelText: "Nhập thành phố: ",
+                        border: OutlineInputBorder(),
+                        suffixIcon: isLoading
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+              optionsViewBuilder:
+                  (
+                    BuildContext context,
+                    AutocompleteOnSelected<String> onSelected,
+                    Iterable<String> options,
+                  ) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxHeight: 220,
+                            maxWidth: 500,
+                          ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final option = options.elementAt(index);
+                              return ListTile(
+                                title: Text(option),
+                                onTap: () => onSelected(option),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
             ),
+
+            SizedBox(height: 10),
+
+            ElevatedButton(
+              onPressed: isLoading ? null : getWeather,
+              child: Text("Xem thời tiết"),
+            ),
+
+            SizedBox(height: 20),
+
+            if (isLoading) CircularProgressIndicator(),
+
+            if (!isLoading && cityName.isNotEmpty)
+              Column(
+                children: [
+                  Text("📍 $cityName", style: TextStyle(fontSize: 22)),
+
+                  if (iconUrl.isNotEmpty) Image.network(iconUrl, width: 100),
+
+                  Text("🌡️ $temp", style: TextStyle(fontSize: 26)),
+
+                  Text(desc, style: TextStyle(fontSize: 18)),
+                ],
+              ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
