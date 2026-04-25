@@ -1,46 +1,78 @@
 # Lab Flutter
 
-Workspace này có 5 dự án Flutter riêng biệt:
+Workspace này có 9 dự án Flutter riêng biệt:
 
+- `boss_level`
 - `dice`
 - `i_am_rich`
+- `mbi_calculator`
 - `mi_card`
 - `magic_ball`
+- `quizzler`
+- `weather_app`
 - `xylophone`
 
 ## Cách chạy từng dự án
 
 Mở terminal tại thư mục `d:\Learning\lab_flutter`, sau đó vào đúng thư mục dự án và chạy lệnh `flutter run`.
 
-### 1. Dice
+### 1. Boss Level
+
+```powershell
+cd d:\Learning\lab_flutter\boss_level
+flutter run
+```
+
+### 2. Dice
 
 ```powershell
 cd d:\Learning\lab_flutter\dice
 flutter run
 ```
 
-### 2. I Am Rich
+### 3. I Am Rich
 
 ```powershell
 cd d:\Learning\lab_flutter\i_am_rich
 flutter run
 ```
 
-### 3. Mi Card
+### 4. MBI Calculator
+
+```powershell
+cd d:\Learning\lab_flutter\mbi_calculator
+flutter run
+```
+
+### 5. Mi Card
 
 ```powershell
 cd d:\Learning\lab_flutter\mi_card
 flutter run
 ```
 
-### 4. Magic Ball
+### 6. Magic Ball
 
 ```powershell
 cd d:\Learning\lab_flutter\magic_ball
 flutter run
 ```
 
-### 5. Xylophone
+### 7. Quizzler
+
+```powershell
+cd d:\Learning\lab_flutter\quizzler
+flutter run
+```
+
+### 8. Weather App
+
+```powershell
+cd d:\Learning\lab_flutter\weather_app
+flutter run
+```
+
+### 9. Xylophone
 
 ```powershell
 cd d:\Learning\lab_flutter\xylophone
