@@ -1,82 +1,16 @@
-# Lab Flutter
+# quizzler
 
-Workspace này có 9 dự án Flutter riêng biệt:
+A new Flutter project.
 
-- `boss_level`
-- `dice`
-- `i_am_rich`
-- `mbi_calculator`
-- `mi_card`
-- `magic_ball`
-- `quizzler`
-- `weather_app`
-- `xylophone`
+## Getting Started
 
-### 1. Boss Level
+This project is a starting point for a Flutter application.
 
-```powershell
-cd ~\lab_flutter\boss_level
-flutter run
-```
+A few resources to get you started if this is your first Flutter project:
 
-### 2. Dice
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-```powershell
-cd ~\lab_flutter\dice
-flutter run
-```
-
-### 3. I Am Rich
-
-```powershell
-cd ~\lab_flutter\i_am_rich
-flutter run
-```
-
-### 4. MBI Calculator
-
-```powershell
-cd ~\lab_flutter\mbi_calculator
-flutter run
-```
-
-### 5. Mi Card
-
-```powershell
-cd ~\lab_flutter\mi_card
-flutter run
-```
-
-### 6. Magic Ball
-
-```powershell
-cd ~\lab_flutter\magic_ball
-flutter run
-```
-
-### 7. Quizzler
-
-```powershell
-cd ~\lab_flutter\quizzler
-flutter run
-```
-
-### 8. Weather App
-
-```powershell
-cd ~\lab_flutter\weather_app
-flutter run
-```
-
-### 9. Xylophone
-
-```powershell
-cd ~\lab_flutter\xylophone
-flutter run
-```
-
-## Ghi chú
-
-- Nếu có nhiều thiết bị, dùng `flutter devices` để xem danh sách rồi chạy `flutter run -d <device_id>`.
-- Nếu muốn chạy trên web, vào đúng thư mục dự án rồi dùng `flutter run -d chrome`.
-- Nếu mới clone project hoặc mới thêm package, chạy `flutter pub get` trước khi `flutter run`.
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
